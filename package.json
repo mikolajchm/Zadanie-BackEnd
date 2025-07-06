@@ -1,0 +1,18 @@
+{
+  "name": "Zad_BackEnd",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "commonjs",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-basic-auth": "^1.2.0",
+    "json2csv": "^6.0.0",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^2.6.7",
+    "nodemon": "^3.1.10"
+  },
+  "scripts": {
+    "start": "nodemon server.js"
+  }
+}
