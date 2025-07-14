@@ -1,7 +1,7 @@
 const express = require('express');
 const basicAuth = require('express-basic-auth');
 const cron = require('node-cron');
-const { parse } = require('json2csv');
+const createCsvStringifier = require('csv-writer').createObjectCsvStringifier;
 const {
   fetchOrders,
   processOrders,
@@ -17,6 +17,14 @@ app.use(basicAuth({
   challenge: true
 }));
 
+const csvStringifier = createCsvStringifier({
+  header: [
+    { id: 'orderID', title: 'Order ID' },
+    { id: 'orderWorth', title: 'Order Worth' },
+    { id: 'products', title: 'Products' }
+  ]
+});
+
 app.get('/orders', (req, res) => {
   const min = parseFloat(req.query.minWorth) || 0;
   const max = parseFloat(req.query.maxWorth) || Number.MAX_SAFE_INTEGER;
@@ -24,8 +32,16 @@ app.get('/orders', (req, res) => {
   const orders = getAllProcessedOrders().filter(o =>
     o.orderWorth >= min && o.orderWorth <= max
   );
+ 
+  const records = orders.map(o => ({
+    orderID: o.orderID,
+    orderWorth: o.orderWorth,
+    products: o.products.map(p => `ID:${p.productID} quantity${p.quantity}`).join('; ')
+  }));
 
-  const csv = parse(orders, { fields: ['orderID', 'orderWorth', 'products'] });
+  const header = csvStringifier.getHeaderString();
+  const body = csvStringifier.stringifyRecords(records);
+  const csv = header + body;
 
   res.header('Content-Type', 'text/csv');
   res.attachment('orders.csv');

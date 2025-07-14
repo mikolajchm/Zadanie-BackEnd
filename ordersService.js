@@ -1,32 +1,58 @@
 const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
-
+require('dotenv').config();
 const rawFile = path.join(__dirname, 'data', 'ordersRaw.json');
 const processedFile = path.join(__dirname, 'data', 'ordersProcessed.json');
 
-const url = 'https://zooart6.yourtechnicaldomain.com/api/admin/v5/orders/orders/search';
-const options = {
+const url = process.env.API_URL;
+const baseOptions = {
   method: 'POST',
   headers: {
     accept: 'application/json',
     'content-type': 'application/json',
-    'X-API-KEY': 'YXBwbGljYXRpb24xNjpYeHI1K0MrNVRaOXBaY2lEcnpiQzBETUZROUxrRzFFYXZuMkx2L0RHRXZRdXNkcmF5R0Y3ZnhDMW1nejlmVmZP'
-  },
-  body: JSON.stringify({
-    params: {
-      ordersStatuses: [
-        'new', 'finished', 'false', 'lost', 'on_order', 'packed', 'ready',
-        'canceled', 'payment_waiting', 'delivery_waiting', 'suspended', 'joined', 'finished_ext'
-      ]
-    }
-  })
+    'X-API-KEY': process.env.API_KEY
+  }
 };
 
 async function fetchOrders() {
-  const res = await fetch(url, options);
-  const json = await res.json();
-  fs.writeFileSync(rawFile, JSON.stringify(json, null, 2));
+  let allOrders = [];
+  let currentPage = 0;
+  let totalPages = 1; 
+
+  while (currentPage < totalPages) {
+    const options = {
+      ...baseOptions,
+      body: JSON.stringify({
+        params: {
+          ordersStatuses: [
+            'new', 'finished', 'false', 'lost', 'on_order', 'packed', 'ready',
+            'canceled', 'payment_waiting', 'delivery_waiting', 'suspended', 'joined', 'finished_ext'
+          ],
+          resultsPage: currentPage
+        }
+      })
+    };
+
+    try {
+      const res = await fetch(url, options);
+      const json = await res.json();
+
+      if (Array.isArray(json.Results)) {
+        allOrders = allOrders.concat(json.Results);
+      }
+
+      if (currentPage === 0 && json.resultsNumberPage !== undefined) {
+        totalPages = json.resultsNumberPage;
+      }
+
+      currentPage++;
+    } catch (error) {
+      break;
+    }
+  }
+
+  fs.writeFileSync(rawFile, JSON.stringify({ Results: allOrders }, null, 2));
 }
 
 function processOrders() {
